@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>To Do List made in plain js</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web">
+    <link rel="stylesheet" href="css/font-awesome.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="clear">
+                <i class="fa fa-refresh"></i>
+            </div>
+            <div id="date"></div>
+        </div>
+        <div class="content">
+            <ul id="list">
+
+                <!---<li class="item">
+                    <i class="fa fa-circle-thin co" job="complete" id="0"></i>
+                    <p class="text" contenteditable="true">Drink Coffee</p>
+                    <i class="fa fa-trash-o de" job="delete" id="0"></i>
+                </li -->
+            </ul>
+        </div>
+        <div class="add-to-do">
+            <i class="fa fa-plus-circle"></i>
+            <input type="text" id="input" placeholder="Add a to-do">
+        </div>
+    <script>const clear = document.querySelector(".clear");
+    const dateElement = document.getElementById("date");
+    const list = document.getElementById("list");
+    const input = document.getElementById("input");
+
+    const CHECK = "fa-check-circle";
+    const UNCHECK = "fa-circle-thin";
+    const LINE_THROUGH = "lineThrough";
+
+    let LIST, id;
+
+
+    let data = localStorage.getItem("TODO");
+
+    if(data){
+        LIST = JSON.parse(data);
+        id = LIST.length;
+        loadList(LIST);
+    }else{
+        LIST = [];
+        id = 0;
+    }
+
+    function loadList(array){
+        array.forEach(function(item){
+            addToDo(item.name, item.id, item.done, item.trash);
+        });
+    }
+
+
+    clear.addEventListener("click", function(){
+        localStorage.clear();
+        location.reload();
+    });
+
+
+    const options = {weekday : "long", month:"short", day:"numeric"};
+    const today = new Date();
+
+    dateElement.innerHTML = today.toLocaleDateString("en-US", options);
+
+
+    function addToDo(toDo, id, done, trash){
+
+        if(trash){ return; }
+
+        const DONE = done ? CHECK : UNCHECK;
+        const LINE = done ? LINE_THROUGH : "";
+
+        const item = `<li class="item">
+                        <i class="fa ${DONE} co" job="complete" id="${id}"></i>
+                        <p class="text ${LINE}" contenteditable="true">${toDo}</p>
+                        <i class="fa fa-trash-o de" job="delete" id="${id}"></i>
+                      </li>
+                    `;
+
+        const position = "beforeend";
+        document.addEventListener('keydown', function (event) {
+          var esc = event.which == 27,
+              nl = event.which == 13,
+              el = event.target,
+              input = el.nodeName != 'INPUT' && el.nodeName != 'TEXTAREA',
+              data = {};
+
+          if (input) {
+            if (esc) {
+              // restore state
+              document.execCommand('undo');
+              el.blur();
+            } else if (nl) {
+              // save
+              data[el.getAttribute('data-name')] = el.innerHTML;
+
+              // we could send an ajax request to update the field
+
+              $.ajax({
+                url: window.location.toString(),
+                data: data,
+                type: 'post'
+              });
+
+              log(JSON.stringify(data));
+
+              el.blur();
+              event.preventDefault();
+            }
+          }
+        }, true);
+        list.insertAdjacentHTML(position, item);
+    }
+
+    document.addEventListener("keyup",function(even){
+        if(event.keyCode == 13){
+            const toDo = input.value;
+
+            if(toDo){
+                addToDo(toDo, id, false, false);
+
+                LIST.push({
+                    name : toDo,
+                    id : id,
+                    done : false,
+                    trash : false
+                });
+                localStorage.setItem("TODO", JSON.stringify(LIST));
+
+                id++;
+            }
+            input.value = "";
+        }
+    });
+
+    function completeToDo(element){
+        element.classList.toggle(CHECK);
+        element.classList.toggle(UNCHECK);
+        element.parentNode.querySelector(".text").classList.toggle(LINE_THROUGH);
+
+        LIST[element.id].done = LIST[element.id].done ? false : true;
+    }
+
+    function removeToDo(element){
+        element.parentNode.parentNode.removeChild(element.parentNode);
+
+        LIST[element.id].trash = true;
+    }
+
+    list.addEventListener("click", function(event){
+        const element = event.target;
+        const elementJob = element.attributes.job.value;
+
+        if(elementJob == "complete"){
+            completeToDo(element);
+        }else if(elementJob == "delete"){
+            removeToDo(element);
+        }
+        localStorage.setItem("TODO", JSON.stringify(LIST));
+    });
+</script>
+</body>
+</html>
